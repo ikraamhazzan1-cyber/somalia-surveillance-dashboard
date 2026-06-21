@@ -73,13 +73,18 @@ npm install
 npm start
 ```
 
+---
+
 ## 👩‍💻 Author
 
-**Ikraam Hassan Abdullahi**
-MSc Epidemiology · Amoud University, Somalia
+### **Ikraam Hassan Abdullahi**
+
+**MSc Epidemiology · Amoud University, Somalia**
 
 📍 Mogadishu, Somalia
+
 🔗 [LinkedIn](https://linkedin.com/in/ikraam-yar)
+
 🐙 [GitHub](https://github.com/ikraamhazzan1-cyber)
 
 ---

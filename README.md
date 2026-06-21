@@ -71,3 +71,10 @@ git clone https://github.com/ikraamhazzan1-cyber/somalia-surveillance-dashboard.
 cd somalia-surveillance-dashboard
 npm install
 npm start
+# 🇸🇴 Somalia Public Health Surveillance Dashboard
+👩‍💻 Author
+Ikraam Hassan Abdullahi
+MSc Epidemiology · Amoud University, Somalia
+📍 Mogadishu, Somalia
+🔗 LinkedIn
+🐙 GitHub

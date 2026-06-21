@@ -71,6 +71,7 @@ git clone https://github.com/ikraamhazzan1-cyber/somalia-surveillance-dashboard.
 cd somalia-surveillance-dashboard
 npm install
 npm start
+```
 
 ## 👩‍💻 Author
 

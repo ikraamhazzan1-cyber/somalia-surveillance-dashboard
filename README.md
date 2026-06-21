@@ -1,25 +1,4 @@
-# 🏥 Somalia Public Health Surveillance Dashboard
-
-
-
-![Status](https://img.shields.io/badge/Status-Live-brightgreen)
-
-
-
-
-![Built With](https://img.shields.io/badge/Built%20With-React-61dafb)
-
-
-
-
-![License](https://img.shields.io/badge/License-MIT-blue)
-
-
-
-
-![Author](https://img.shields.io/badge/Author-Ikraam%20Hassan-teal)
-
-
+# 🇸🇴 Somalia Public Health Surveillance Dashboard
 
 > An interactive public health surveillance dashboard monitoring disease outbreaks, vaccination coverage, and epidemic trends across 18 regions of Somalia.
 

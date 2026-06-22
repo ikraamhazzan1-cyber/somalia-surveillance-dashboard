@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Somalia Public Health Surveillance Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #060d1a; color: #c8dff2; min-height: 100vh; }
+
+  /* HEADER */
+  .header { background: #0d1b2e; border-bottom: 1px solid #1a2d45; padding: 16px 20px; }
+  .header-top { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+  .live-badge { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  .live-text { font-size: 10px; color: #10b981; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+  .header h1 { font-size: 20px; font-weight: 800; color: #f0f6ff; margin-bottom: 2px; }
+  .header p { font-size: 12px; color: #4a6280; }
+  .header-btns { display: flex; gap: 8px; align-items: center; }
+  .btn { padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid; transition: opacity 0.2s; }
+  .btn:hover { opacity: 0.8; }
+  .btn-green { background: #0d2d1a; border-color: #10b981; color: #10b981; }
+  .btn-teal { background: #0d1f2d; border-color: #0ea5e9; color: #0ea5e9; }
+
+  /* ALERT BANNER */
+  .alert-banner { background: #2d0a0a; border-bottom: 1px solid #ef4444; padding: 8px 20px; font-size: 12px; color: #ef4444; font-weight: 700; }
+
+  /* STATS */
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; padding: 16px 20px; }
+  .stat-card { background: #0d1b2e; border: 1px solid #1a2d45; border-radius: 10px; padding: 14px 16px; flex: 1; min-width: 100px; }
+  .stat-val { font-size: 26px; font-weight: 800; line-height: 1; }
+  .stat-label { font-size: 10px; font-weight: 700; color: #4a6280; margin-top: 5px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .stat-sub { font-size: 10px; color: #4a6280; margin-top: 2px; }
+  .stat-trend { font-size: 10px; font-weight: 600; margin-top: 3px; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; padding: 0 20px 12px; border-bottom: 1px solid #1a2d45; flex-wrap: wrap; }
+  .tab { padding: 7px 14px; border: none; cursor: pointer; font-size: 12px; font-weight: 600; border-radius: 6px; background: transparent; color: #4a6280; transition: all 0.15s; }
+  .tab.active { background: #0ea5e9; color: #fff; }
+
+  /* CONTENT */
+  .content { padding: 16px 20px; }
+  .panel { background: #0d1b2e; border: 1px solid #1a2d45; border-radius: 10px; padding: 18px; margin-bottom: 14px; }
+  .section-title { font-size: 12px; font-weight: 700; color: #f0f6ff; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+  .section-sub { font-size: 11px; color: #4a6280; margin-bottom: 14px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .span-2 { grid-column: 1 / -1; }
+
+  /* MAP */
+  .map-container { position: relative; }
+  .map-tooltip { position: absolute; top: 8px; right: 8px; background: #0a1628; border: 1px solid #1a2d45; border-radius: 8px; padding: 10px 12px; font-size: 11px; min-width: 140px; display: none; z-index: 10; }
+  .map-tooltip .tt-name { font-weight: 700; color: #f0f6ff; margin-bottom: 6px; }
+  .map-legend { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; justify-content: center; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #4a6280; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+  /* DISEASE FILTER BUTTONS */
+  .filter-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .filter-btn { padding: 5px 12px; border-radius: 16px; border: 1px solid #1a2d45; background: transparent; color: #4a6280; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .filter-btn.active { border-color: #0ea5e9; background: rgba(14,165,233,0.15); color: #0ea5e9; }
+
+  /* ALERTS */
+  .alert-card { border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .alert-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; color: #fff; display: inline-block; margin-bottom: 4px; }
+  .alert-region { font-size: 13px; font-weight: 700; color: #f0f6ff; }
+  .alert-msg { font-size: 11px; color: #4a6280; margin-top: 4px; }
+  .alert-date { font-size: 10px; color: #4a6280; margin-top: 4px; }
+  .alert-cases { font-size: 22px; font-weight: 800; text-align: right; }
+  .alert-cases-label { font-size: 10px; color: #4a6280; text-transform: uppercase; text-align: right; }
+
+  /* TABLE */
+  .search-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+  .search-input { background: #0d1b2e; border: 1px solid #1a2d45; color: #f0f6ff; padding: 8px 12px; border-radius: 6px; font-size: 12px; outline: none; flex: 1; min-width: 180px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { padding: 10px 12px; text-align: left; font-size: 10px; font-weight: 700; color: #4a6280; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid #1a2d45; background: #0a1628; }
+  th.num, td.num { text-align: center; }
+  td { padding: 10px 12px; border-bottom: 1px solid #0a1220; color: #c8dff2; }
+  tr:nth-child(even) { background: #0a1220; }
+  tr:hover { background: #0f2040; }
+  tfoot td { background: #0a1628; font-weight: 700; border-top: 1px solid #1a2d45; color: #0ea5e9; }
+  tfoot td:first-child { color: #4a6280; font-size: 11px; }
+  .badge { padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; display: inline-block; }
+
+  /* VACC */
+  .vacc-bar-wrap { margin-bottom: 10px; }
+  .vacc-bar-label { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 3px; }
+  .vacc-bar-bg { background: #1a2d45; border-radius: 4px; height: 8px; }
+  .vacc-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+
+  /* FOOTER */
+  .footer { text-align: center; padding: 16px 20px; border-top: 1px solid #1a2d45; font-size: 10px; color: #4a6280; margin-top: 8px; }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 600px) {
+    .grid-2 { grid-template-columns: 1fr; }
+    .span-2 { grid-column: 1; }
+    .stat-card { min-width: 80px; }
+    .header h1 { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="live-badge">
+        <div class="live-dot"></div>
+        <span class="live-text">Live Surveillance · Somalia · 2025</span>
+      </div>
+      <h1>🇸🇴 Somalia Public Health Surveillance</h1>
+      <p>18 regions · 4 diseases · Real-time monitoring dashboard</p>
+    </div>
+    <div class="header-btns">
+      <button class="btn btn-green" onclick="exportCSV()">⬇ Export CSV</button>
+      <button class="btn btn-teal" onclick="window.print()">🖨 Print</button>
+    </div>
+  </div>
+</div>
+
+<!-- ALERT BANNER -->
+<div class="alert-banner">🔴 3 ACTIVE OUTBREAK ALERTS — Immediate public health response required</div>
+
+<!-- STAT CARDS -->
+<div class="stats">
+  <div class="stat-card" style="border-top:3px solid #0ea5e9">
+    <div class="stat-val" style="color:#0ea5e9">5.2k</div>
+    <div class="stat-label">Total Cases</div>
+    <div class="stat-sub">All diseases · All regions</div>
+    <div class="stat-trend" style="color:#ef4444">▲ 12% vs last week</div>
+  </div>
+  <div class="stat-card" style="border-top:3px solid #0ea5e9">
+    <div class="stat-val" style="color:#0ea5e9">2.1k</div>
+    <div class="stat-label">Cholera</div>
+    <div class="stat-sub">18 regions</div>
+    <div class="stat-trend" style="color:#ef4444">▲ 18%</div>
+  </div>
+  <div class="stat-card" style="border-top:3px solid #f59e0b">
+    <div class="stat-val" style="color:#f59e0b">1.4k</div>
+    <div class="stat-label">Measles</div>
+    <div class="stat-sub">Vaccination gap</div>
+    <div class="stat-trend" style="color:#ef4444">▲ 24%</div>
+  </div>
+  <div class="stat-card" style="border-top:3px solid #10b981">
+    <div class="stat-val" style="color:#10b981">981</div>
+    <div class="stat-label">Malaria</div>
+    <div class="stat-sub">Peak season</div>
+    <div class="stat-trend" style="color:#ef4444">▲ 8%</div>
+  </div>
+  <div class="stat-card" style="border-top:3px solid #8b5cf6">
+    <div class="stat-val" style="color:#8b5cf6">707</div>
+    <div class="stat-label">AWD</div>
+    <div class="stat-sub">WASH-related</div>
+    <div class="stat-trend" style="color:#ef4444">▲ 15%</div>
+  </div>
+  <div class="stat-card" style="border-top:3px solid #ef4444">
+    <div class="stat-val" style="color:#ef4444">3</div>
+    <div class="stat-label">Red Alerts</div>
+    <div class="stat-sub">Active outbreaks</div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="showTab('overview',this)">Overview</button>
+  <button class="tab" onclick="showTab('trends',this)">Trends</button>
+  <button class="tab" onclick="showTab('map',this)">Map</button>
+  <button class="tab" onclick="showTab('alerts',this)">Alerts</button>
+  <button class="tab" onclick="showTab('vaccination',this)">Vaccination</button>
+  <button class="tab" onclick="showTab('data',this)">Data Table</button>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- OVERVIEW TAB -->
+  <div id="tab-overview">
+    <div class="grid-2">
+      <div class="panel span-2">
+        <div class="section-title">Disease Trends (12 Weeks)</div>
+        <div class="section-sub">Weekly reported cases — Jan to Mar 2025</div>
+        <canvas id="trendChart" height="200"></canvas>
+      </div>
+      <div class="panel">
+        <div class="section-title">Disease Burden</div>
+        <div class="section-sub">Case distribution by disease</div>
+        <canvas id="pieChart" height="200"></canvas>
+      </div>
+      <div class="panel">
+        <div class="section-title">Top Affected Regions</div>
+        <div class="section-sub">Total cases by region</div>
+        <canvas id="regionChart" height="200"></canvas>
+      </div>
+      <div class="panel span-2">
+        <div class="section-title">Active Alerts</div>
+        <div class="section-sub">Outbreak alerts requiring immediate response</div>
+        <div id="overview-alerts"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRENDS TAB -->
+  <div id="tab-trends" class="hidden">
+    <div class="panel">
+      <div class="section-title">12-Week Epidemic Curve</div>
+      <div class="section-sub">Weekly case counts — all diseases</div>
+      <canvas id="lineChart" height="220"></canvas>
+    </div>
+    <div class="panel">
+      <div class="section-title">Regional Case Load</div>
+      <div class="section-sub">Cases per region — all diseases stacked</div>
+      <canvas id="stackedChart" height="220"></canvas>
+    </div>
+  </div>
+
+  <!-- MAP TAB -->
+  <div id="tab-map" class="hidden">
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+        <div>
+          <div class="section-title">Somalia Disease Map</div>
+          <div class="section-sub">Hover/tap region for details</div>
+        </div>
+        <div class="filter-bar" style="margin:0">
+          <button class="filter-btn active" onclick="setMapDisease('cholera',this)">Cholera</button>
+          <button class="filter-btn" onclick="setMapDisease('measles',this)">Measles</button>
+          <button class="filter-btn" onclick="setMapDisease('malaria',this)">Malaria</button>
+          <button class="filter-btn" onclick="setMapDisease('awd',this)">AWD</button>
+        </div>
+      </div>
+      <div class="map-container">
+        <svg id="somalia-map" viewBox="0 0 340 365" style="width:100%;max-height:340px"></svg>
+        <div class="map-tooltip" id="map-tooltip">
+          <div class="tt-name" id="tt-name"></div>
+          <div style="color:#0ea5e9;font-size:11px">Cholera: <span id="tt-cholera"></span></div>
+          <div style="color:#f59e0b;font-size:11px">Measles: <span id="tt-measles"></span></div>
+          <div style="color:#10b981;font-size:11px">Malaria: <span id="tt-malaria"></span></div>
+          <div style="color:#8b5cf6;font-size:11px">AWD: <span id="tt-awd"></span></div>
+          <div id="tt-alert" style="font-size:10px;font-weight:700;margin-top:6px;text-transform:uppercase"></div>
+        </div>
+        <div class="map-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>High</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>Medium</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#1d7a5f"></div>Low</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#0d3d2e"></div>Minimal</div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="section-title" id="ranking-title">Regional Ranking — Cholera</div>
+      <div class="section-sub">Top 10 regions by case count</div>
+      <div id="ranking-bars"></div>
+    </div>
+  </div>
+
+  <!-- ALERTS TAB -->
+  <div id="tab-alerts" class="hidden">
+    <div class="filter-bar">
+      <button class="filter-btn active" onclick="filterAlerts('All',this)">All</button>
+      <button class="filter-btn" onclick="filterAlerts('Cholera',this)">Cholera</button>
+      <button class="filter-btn" onclick="filterAlerts('Measles',this)">Measles</button>
+      <button class="filter-btn" onclick="filterAlerts('Malaria',this)">Malaria</button>
+      <button class="filter-btn" onclick="filterAlerts('AWD',this)">AWD</button>
+      <button class="filter-btn" onclick="filterAlerts('red',this)" style="margin-left:auto">🔴 Red</button>
+      <button class="filter-btn" onclick="filterAlerts('yellow',this)">🟡 Yellow</button>
+    </div>
+    <div id="alerts-container"></div>
+  </div>
+
+  <!-- VACCINATION TAB -->
+  <div id="tab-vaccination" class="hidden">
+    <div class="panel">
+      <div class="section-title">EPI Coverage by Region</div>
+      <div class="section-sub">Measles vaccination coverage vs 95% WHO target</div>
+      <div id="vacc-bars"></div>
+      <div style="display:flex;gap:14px;margin-top:14px;flex-wrap:wrap">
+        <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div><span style="font-size:11px;color:#4a6280">≥80% On track</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div><span style="font-size:11px;color:#4a6280">60–79% At risk</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div><span style="font-size:11px;color:#4a6280">&lt;60% Critical gap</span></div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="stat-card" style="border-top:3px solid #ef4444"><div class="stat-val" style="color:#ef4444">6</div><div class="stat-label">Below Target</div></div>
+      <div class="stat-card" style="border-top:3px solid #f59e0b"><div class="stat-val" style="color:#f59e0b">68%</div><div class="stat-label">Avg Coverage</div></div>
+      <div class="stat-card" style="border-top:3px solid #10b981"><div class="stat-val" style="color:#10b981">3</div><div class="stat-label">On Track</div></div>
+      <div class="stat-card" style="border-top:3px solid #ef4444"><div class="stat-val" style="color:#ef4444">2</div><div class="stat-label">Critical Gap</div></div>
+    </div>
+  </div>
+
+  <!-- DATA TABLE TAB -->
+  <div id="tab-data" class="hidden">
+    <div class="search-bar">
+      <input class="search-input" id="search-input" placeholder="🔍 Search region..." oninput="filterTable()">
+      <button class="filter-btn active" onclick="filterByAlert('All',this)">All</button>
+      <button class="filter-btn" onclick="filterByAlert('red',this)">Red</button>
+      <button class="filter-btn" onclick="filterByAlert('yellow',this)">Yellow</button>
+      <button class="filter-btn" onclick="filterByAlert('green',this)">Green</button>
+      <button class="btn btn-green" onclick="exportCSV()" style="margin-left:auto">⬇ Export CSV</button>
+    </div>
+    <div class="panel" style="padding:0;overflow:hidden;overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Region</th>
+            <th class="num">Cholera</th>
+            <th class="num">Measles</th>
+            <th class="num">Malaria</th>
+            <th class="num">AWD</th>
+            <th class="num">Total</th>
+            <th class="num">Alert</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+        <tfoot id="table-foot"></tfoot>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  Somalia Public Health Surveillance Dashboard · Built by <strong>Ikraam Hassan Abdullahi</strong> · MSc Epidemiology · Amoud University · 2025<br>
+  Sample data for portfolio demonstration — based on WHO/UNICEF Somalia health parameters
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────
+const REGIONS = [
+  { id:"banadir", name:"Banadir (Mogadishu)", cholera:412, measles:189, malaria:94, awd:321, alert:"red" },
+  { id:"lower_shabelle", name:"Lower Shabelle", cholera:287, measles:143, malaria:211, awd:198, alert:"yellow" },
+  { id:"middle_shabelle", name:"Middle Shabelle", cholera:198, measles:98, malaria:176, awd:145, alert:"yellow" },
+  { id:"bay", name:"Bay", cholera:165, measles:211, malaria:88, awd:132, alert:"red" },
+  { id:"bakool", name:"Bakool", cholera:143, measles:167, malaria:74, awd:118, alert:"yellow" },
+  { id:"hiraan", name:"Hiraan", cholera:122, measles:134, malaria:198, awd:109, alert:"yellow" },
+  { id:"galgaduud", name:"Galgaduud", cholera:98, measles:87, malaria:156, awd:87, alert:"green" },
+  { id:"mudug", name:"Mudug", cholera:76, measles:76, malaria:134, awd:65, alert:"green" },
+  { id:"nugaal", name:"Nugaal", cholera:45, measles:54, malaria:67, awd:43, alert:"green" },
+  { id:"bari", name:"Bari", cholera:34, measles:43, malaria:54, awd:32, alert:"green" },
+  { id:"sool", name:"Sool", cholera:56, measles:65, malaria:87, awd:54, alert:"green" },
+  { id:"sanaag", name:"Sanaag", cholera:43, measles:54, malaria:76, awd:41, alert:"green" },
+  { id:"togdheer", name:"Togdheer", cholera:67, measles:78, malaria:98, awd:58, alert:"green" },
+  { id:"woqooyi", name:"Woqooyi Galbeed", cholera:54, measles:67, malaria:65, awd:49, alert:"green" },
+  { id:"lower_juba", name:"Lower Juba", cholera:187, measles:112, malaria:243, awd:154, alert:"red" },
+  { id:"middle_juba", name:"Middle Juba", cholera:134, measles:89, malaria:198, awd:112, alert:"yellow" },
+  { id:"gedo", name:"Gedo", cholera:112, measles:98, malaria:167, awd:98, alert:"yellow" },
+  { id:"awdal", name:"Awdal", cholera:38, measles:45, malaria:54, awd:34, alert:"green" },
+];
+
+const WEEKLY = [
+  { week:"W1 Jan", Cholera:89, Measles:45, Malaria:67, AWD:112 },
+  { week:"W2 Jan", Cholera:102, Measles:52, Malaria:71, AWD:98 },
+  { week:"W3 Jan", Cholera:134, Measles:61, Malaria:83, AWD:134 },
+  { week:"W4 Jan", Cholera:156, Measles:78, Malaria:76, AWD:145 },
+  { week:"W1 Feb", Cholera:178, Measles:89, Malaria:91, AWD:167 },
+  { week:"W2 Feb", Cholera:201, Measles:112, Malaria:87, AWD:189 },
+  { week:"W3 Feb", Cholera:187, Measles:134, Malaria:94, AWD:178 },
+  { week:"W4 Feb", Cholera:212, Measles:156, Malaria:102, AWD:198 },
+  { week:"W1 Mar", Cholera:234, Measles:143, Malaria:98, AWD:212 },
+  { week:"W2 Mar", Cholera:267, Measles:167, Malaria:112, AWD:234 },
+  { week:"W3 Mar", Cholera:289, Measles:189, Malaria:108, AWD:245 },
+  { week:"W4 Mar", Cholera:312, Measles:201, Malaria:121, AWD:267 },
+];
+
+const ALERTS = [
+  { level:"red", region:"Banadir", disease:"Cholera", cases:412, date:"2025-03-28", msg:"Outbreak threshold exceeded — immediate response required" },
+  { level:"red", region:"Bay", disease:"Measles", cases:211, date:"2025-03-27", msg:"Measles cluster detected — vaccination campaign needed" },
+  { level:"red", region:"Lower Juba", disease:"Malaria", cases:243, date:"2025-03-26", msg:"High malaria transmission — IRS deployment recommended" },
+  { level:"yellow", region:"Lower Shabelle", disease:"AWD", cases:198, date:"2025-03-25", msg:"Rising AWD trend — WASH intervention advised" },
+  { level:"yellow", region:"Hiraan", disease:"Malaria", cases:198, date:"2025-03-24", msg:"Malaria cases increasing — enhanced surveillance needed" },
+];
+
+const VACCINATION = [
+  { region:"Banadir", coverage:78 },
+  { region:"Bay", coverage:54 },
+  { region:"Lower Shabelle", coverage:61 },
+  { region:"Hiraan", coverage:67 },
+  { region:"Galgaduud", coverage:72 },
+  { region:"Bari", coverage:84 },
+  { region:"Woqooyi", coverage:81 },
+  { region:"Lower Juba", coverage:48 },
+];
+
+const DC = { Cholera:"#0ea5e9", Measles:"#f59e0b", Malaria:"#10b981", AWD:"#8b5cf6" };
+const AC = { red:"#ef4444", yellow:"#f59e0b", green:"#10b981" };
+const AB = { red:"#2d0a0a", yellow:"#2d1f0a", green:"#0a2d1a" };
+
+let currentMapDisease = "cholera";
+let alertDiseaseFilter = "All";
+let alertLevelFilter = "All";
+let tableAlertFilter = "All";
+
+// ── TAB SWITCHING ─────────────────────────────────────────────────────────
+function showTab(name, btn) {
+  document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.add('hidden'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.remove('hidden');
+  btn.classList.add('active');
+  if (name === 'trends') { renderLineChart(); renderStackedChart(); }
+  if (name === 'map') { renderMap(); renderRanking(); }
+  if (name === 'vaccination') renderVacc();
+  if (name === 'data') renderTable();
+}
+
+// ── CHARTS ────────────────────────────────────────────────────────────────
+const chartDefaults = {
+  plugins: { legend: { labels: { color: "#c8dff2", font: { size: 11 } } } },
+  scales: {
+    x: { ticks: { color:"#4a6280", font:{size:10} }, grid: { color:"#1a2d45" } },
+    y: { ticks: { color:"#4a6280", font:{size:10} }, grid: { color:"#1a2d45" } }
+  }
+};
+
+// Trend area chart
+const trendCtx = document.getElementById('trendChart').getContext('2d');
+new Chart(trendCtx, {
+  type: 'line',
+  data: {
+    labels: WEEKLY.map(w => w.week),
+    datasets: Object.keys(DC).map(d => ({
+      label: d, data: WEEKLY.map(w => w[d]),
+      borderColor: DC[d], backgroundColor: DC[d]+'33',
+      fill: true, tension: 0.4, pointRadius: 3, borderWidth: 2
+    }))
+  },
+  options: { ...chartDefaults, responsive: true }
+});
+
+// Pie chart
+const pieCtx = document.getElementById('pieChart').getContext('2d');
+new Chart(pieCtx, {
+  type: 'doughnut',
+  data: {
+    labels: ['Cholera','Measles','Malaria','AWD'],
+    datasets: [{ data: [2131,1570,981,707], backgroundColor: Object.values(DC), borderWidth: 0 }]
+  },
+  options: { plugins: { legend: { labels: { color:"#c8dff2", font:{size:11} } } }, responsive: true }
+});
+
+// Top regions bar
+const topRegions = [...REGIONS].sort((a,b) => (b.cholera+b.measles+b.malaria+b.awd)-(a.cholera+a.measles+a.malaria+a.awd)).slice(0,6);
+const regionCtx = document.getElementById('regionChart').getContext('2d');
+new Chart(regionCtx, {
+  type: 'bar',
+  data: {
+    labels: topRegions.map(r => r.name.split('(')[0].trim()),
+    datasets: [{ label:'Total Cases', data: topRegions.map(r=>r.cholera+r.measles+r.malaria+r.awd), backgroundColor:'#0ea5e9aa', borderRadius:4 }]
+  },
+  options: { ...chartDefaults, plugins:{legend:{display:false}}, responsive:true }
+});
+
+function renderLineChart() {
+  const ctx = document.getElementById('lineChart').getContext('2d');
+  if (ctx.chart) ctx.chart.destroy();
+  ctx.chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: WEEKLY.map(w=>w.week),
+      datasets: Object.keys(DC).map(d=>({ label:d, data:WEEKLY.map(w=>w[d]), borderColor:DC[d], tension:0.4, pointRadius:3, borderWidth:2.5, fill:false }))
+    },
+    options:{...chartDefaults,responsive:true}
+  });
+}
+
+function renderStackedChart() {
+  const top10 = [...REGIONS].sort((a,b)=>(b.cholera+b.measles+b.malaria+b.awd)-(a.cholera+a.measles+a.malaria+a.awd)).slice(0,10);
+  const ctx = document.getElementById('stackedChart').getContext('2d');
+  if(ctx.chart) ctx.chart.destroy();
+  ctx.chart = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels:top10.map(r=>r.name.split('(')[0].trim()),
+      datasets:[
+        {label:'Cholera',data:top10.map(r=>r.cholera),backgroundColor:'#0ea5e9aa',stack:'a'},
+        {label:'Measles',data:top10.map(r=>r.measles),backgroundColor:'#f59e0baa',stack:'a'},
+        {label:'Malaria',data:top10.map(r=>r.malaria),backgroundColor:'#10b981aa',stack:'a'},
+        {label:'AWD',data:top10.map(r=>r.awd),backgroundColor:'#8b5cf6aa',stack:'a'},
+      ]
+    },
+    options:{...chartDefaults,responsive:true}
+  });
+}
+
+// ── MAP ───────────────────────────────────────────────────────────────────
+const MAP_LAYOUT = [
+  ["woqooyi",30,10,80,40,"Woqooyi"],["awdal",10,10,18,40,"Awdal"],
+  ["togdheer",115,10,55,50,"Togdheer"],["sanaag",175,5,80,45,"Sanaag"],
+  ["bari",260,5,65,55,"Bari"],["sool",170,55,85,45,"Sool"],
+  ["nugaal",260,65,65,45,"Nugaal"],["mudug",165,105,90,55,"Mudug"],
+  ["galgaduud",160,165,95,50,"Galgaduud"],["hiraan",120,165,38,70,"Hiraan"],
+  ["middle_shabelle",120,105,38,58,"Mid Shabelle"],["bay",55,175,62,60,"Bay"],
+  ["bakool",20,175,32,60,"Bakool"],["banadir",120,240,38,35,"Banadir"],
+  ["lower_shabelle",80,225,38,55,"Lr Shabelle"],["middle_juba",55,240,23,55,"Mid Juba"],
+  ["gedo",15,240,38,55,"Gedo"],["lower_juba",30,300,65,50,"Lr Juba"],
+];
+
+function getMapColor(r) {
+  const vals = REGIONS.map(x=>x[currentMapDisease]);
+  const max = Math.max(...vals);
+  const v = r[currentMapDisease]/max;
+  if(v>0.7) return "#ef4444";
+  if(v>0.4) return "#f59e0b";
+  if(v>0.2) return "#1d7a5f";
+  return "#0d3d2e";
+}
+
+function renderMap() {
+  const svg = document.getElementById('somalia-map');
+  svg.innerHTML = '';
+  MAP_LAYOUT.forEach(([id,x,y,w,h,label]) => {
+    const r = REGIONS.find(r=>r.id===id); if(!r) return;
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.style.cursor='pointer';
+    const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x',x); rect.setAttribute('y',y);
+    rect.setAttribute('width',w); rect.setAttribute('height',h);
+    rect.setAttribute('rx',3); rect.setAttribute('fill',getMapColor(r));
+    rect.setAttribute('stroke','#1a2d45'); rect.setAttribute('stroke-width','0.5');
+    const t1 = document.createElementNS('http://www.w3.org/2000/svg','text');
+    t1.setAttribute('x',x+w/2); t1.setAttribute('y',y+h/2-4);
+    t1.setAttribute('text-anchor','middle'); t1.setAttribute('font-size',w>45?7:6);
+    t1.setAttribute('fill','#f0f6ff'); t1.setAttribute('font-weight','600');
+    t1.textContent=label;
+    const t2 = document.createElementNS('http://www.w3.org/2000/svg','text');
+    t2.setAttribute('x',x+w/2); t2.setAttribute('y',y+h/2+8);
+    t2.setAttribute('text-anchor','middle'); t2.setAttribute('font-size',8);
+    t2.setAttribute('fill','#f0f6ff'); t2.setAttribute('font-weight','800');
+    t2.textContent=r[currentMapDisease];
+    g.appendChild(rect); g.appendChild(t1); g.appendChild(t2);
+    g.addEventListener('mouseenter',()=>showTooltip(r));
+    g.addEventListener('mouseleave',()=>document.getElementById('map-tooltip').style.display='none');
+    g.addEventListener('click',()=>showTooltip(r));
+    svg.appendChild(g);
+  });
+}
+
+function showTooltip(r) {
+  document.getElementById('tt-name').textContent=r.name;
+  document.getElementById('tt-cholera').textContent=r.cholera;
+  document.getElementById('tt-measles').textContent=r.measles;
+  document.getElementById('tt-malaria').textContent=r.malaria;
+  document.getElementById('tt-awd').textContent=r.awd;
+  const al=document.getElementById('tt-alert');
+  al.textContent='● '+r.alert+' alert'; al.style.color=AC[r.alert];
+  document.getElementById('map-tooltip').style.display='block';
+}
+
+function setMapDisease(d, btn) {
+  currentMapDisease=d;
+  document.querySelectorAll('#tab-map .filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('ranking-title').textContent='Regional Ranking — '+d.charAt(0).toUpperCase()+d.slice(1);
+  renderMap(); renderRanking();
+}
+
+function renderRanking() {
+  const sorted=[...REGIONS].sort((a,b)=>b[currentMapDisease]-a[currentMapDisease]).slice(0,10);
+  const max=sorted[0][currentMapDisease];
+  const color=DC[currentMapDisease.charAt(0).toUpperCase()+currentMapDisease.slice(1)]||'#0ea5e9';
+  document.getElementById('ranking-bars').innerHTML=sorted.map((r,i)=>`
+    <div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+        <span style="font-size:11px;color:#c8dff2">${i+1}. ${r.name}</span>
+        <span style="font-size:12px;font-weight:700;color:${color}">${r[currentMapDisease]}</span>
+      </div>
+      <div style="background:#1a2d45;border-radius:3px;height:5px">
+        <div style="width:${(r[currentMapDisease]/max*100).toFixed(1)}%;background:${color};border-radius:3px;height:100%"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── ALERTS ────────────────────────────────────────────────────────────────
+function renderAlerts(container, alerts) {
+  document.getElementById(container).innerHTML = alerts.map(a=>`
+    <div class="alert-card" style="background:${AB[a.level]};border:1px solid ${AC[a.level]}">
+      <div>
+        <span class="alert-badge" style="background:${AC[a.level]}">${a.level}</span>
+        <span style="font-size:11px;color:${DC[a.disease]||'#0ea5e9'};margin-left:6px">· ${a.disease}</span>
+        <div class="alert-region">${a.region}</div>
+        <div class="alert-msg">${a.msg}</div>
+        <div class="alert-date">Reported: ${a.date}</div>
+      </div>
+      <div>
+        <div class="alert-cases" style="color:${AC[a.level]}">${a.cases}</div>
+        <div class="alert-cases-label">cases</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Overview alerts (top 3)
+renderAlerts('overview-alerts', ALERTS.slice(0,3));
+
+function filterAlerts(filter, btn) {
+  document.querySelectorAll('#tab-alerts .filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const isLevel = ['red','yellow'].includes(filter);
+  if(isLevel) alertLevelFilter=filter; else alertDiseaseFilter=filter;
+  const filtered = ALERTS.filter(a=>{
+    const dMatch = alertDiseaseFilter==='All'||a.disease===alertDiseaseFilter;
+    const lMatch = alertLevelFilter==='All'||a.level===alertLevelFilter;
+    return dMatch&&lMatch;
+  });
+  renderAlerts('alerts-container', filtered);
+}
+renderAlerts('alerts-container', ALERTS);
+
+// ── VACCINATION ───────────────────────────────────────────────────────────
+function renderVacc() {
+  document.getElementById('vacc-bars').innerHTML = VACCINATION.map(v=>{
+    const color = v.coverage>=80?'#10b981':v.coverage>=60?'#f59e0b':'#ef4444';
+    return `
+      <div class="vacc-bar-wrap">
+        <div class="vacc-bar-label">
+          <span style="color:#c8dff2">${v.region}</span>
+          <span style="color:${color};font-weight:700">${v.coverage}% <span style="color:#4a6280;font-weight:400">/ 95% target</span></span>
+        </div>
+        <div class="vacc-bar-bg"><div class="vacc-bar-fill" style="width:${v.coverage}%;background:${color}"></div></div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── TABLE ─────────────────────────────────────────────────────────────────
+function renderTable() {
+  const search = (document.getElementById('search-input')||{}).value||'';
+  const filtered = REGIONS.filter(r=>{
+    const ms = r.name.toLowerCase().includes(search.toLowerCase());
+    const ma = tableAlertFilter==='All'||r.alert===tableAlertFilter;
+    return ms&&ma;
+  });
+  const badge=(l)=>`<span class="badge" style="background:${AB[l]};color:${AC[l]};border:1px solid ${AC[l]}">${l}</span>`;
+  document.getElementById('table-body').innerHTML = filtered.map(r=>`
+    <tr>
+      <td style="color:#f0f6ff;font-weight:600">${r.name}</td>
+      <td class="num">${r.cholera}</td>
+      <td class="num">${r.measles}</td>
+      <td class="num">${r.malaria}</td>
+      <td class="num">${r.awd}</td>
+      <td class="num" style="color:#f0f6ff;font-weight:700">${r.cholera+r.measles+r.malaria+r.awd}</td>
+      <td class="num">${badge(r.alert)}</td>
+    </tr>
+  `).join('');
+  const tot=(k)=>filtered.reduce((s,r)=>s+r[k],0);
+  document.getElementById('table-foot').innerHTML=`
+    <tr>
+      <td>${filtered.length} regions</td>
+      <td class="num">${tot('cholera')}</td>
+      <td class="num">${tot('measles')}</td>
+      <td class="num">${tot('malaria')}</td>
+      <td class="num">${tot('awd')}</td>
+      <td class="num" style="color:#f0f6ff">${tot('cholera')+tot('measles')+tot('malaria')+tot('awd')}</td>
+      <td></td>
+    </tr>
+  `;
+}
+
+function filterTable() { renderTable(); }
+function filterByAlert(f, btn) {
+  tableAlertFilter=f;
+  document.querySelectorAll('#tab-data .filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable();
+}
+renderTable();
+
+// ── CSV EXPORT ────────────────────────────────────────────────────────────
+function exportCSV() {
+  const header=["Region","Cholera","Measles","Malaria","AWD","Total","Alert"];
+  const rows=REGIONS.map(r=>[r.name,r.cholera,r.measles,r.malaria,r.awd,r.cholera+r.measles+r.malaria+r.awd,r.alert.toUpperCase()]);
+  const csv=[header,...rows].map(r=>r.join(",")).join("\n");
+  const a=document.createElement("a");
+  a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);
+  a.download="somalia_surveillance_2025.csv"; a.click();
+}
+</script>
+</body>
+</html>
